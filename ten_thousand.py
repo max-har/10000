@@ -11,6 +11,8 @@ Created on Mon Jan 18 14:27:03 2021
 import random
 import sys
 
+from  copy import deepcopy
+
 
 WELCOME = r''' _               _   _                                     _
 | |_ ___ _ __   | |_| |__   ___  _   _ ___  __ _ _ __   __| |
@@ -18,7 +20,9 @@ WELCOME = r''' _               _   _                                     _
 | ||  __/ | | | | |_| | | | (_) | |_| \__ \ (_| | | | | (_| |
  \__\___|_| |_|  \__|_| |_|\___/ \__,_|___/\__,_|_| |_|\__,_|
 
-https://github.com/max-har/10000     ¯\_(ツ)_/¯    2021-01-21'''
+https://github.com/max-har/10000                   2021-01-21'''
+
+THRESHOLD = 350
 
 
 def play():
@@ -30,9 +34,7 @@ def play():
     while score < 10000:
         this_throw = throw(cubes, score)
         calc_score = put_dice_aside(this_throw, cubes_aside, score)
-        print(calc_score)
         score += calc_score
-        print(score)
         break
 
 
@@ -48,10 +50,11 @@ def throw(cubes, score=0):
 
 def show_score(score):
     """show score"""
-    current_score = f'| {score:,} | 10,000 |'
-    print('\n+'+(len(current_score)-2)*'-'+'+')
+    current_score = f'│ {score:,} / 10,000 │'
+
+    print('\n┌'+(len(current_score)-2)*'─'+'┐')
     print(current_score)
-    print('+'+(len(current_score)-2)*'-'+'+\n')
+    print('└'+(len(current_score)-2)*'─'+'┘\n')
     #return score
 
 
@@ -61,29 +64,38 @@ def put_dice_aside(this_throw, all_aside, score):
     param1: current throw
     param2: old score
     output: new score"""
-    if not validator(this_throw, init=True):  # remove only_special
-        print(f'Sorry, no chance: {this_throw}')
+    if not validator(this_throw, init=True):
+        print(f'No chance: {this_throw} <> {all_aside}')
         roll = input('Do you want to roll the dice again? [Y/n] ')
         if not roll.lower() == 'y':
-            #show_score(score)
             sys.exit()
+        else:
+            second_throw = throw(range(1,7))  # six cubes
+            put_dice_aside(second_throw, [], score)
 
     all_aside, now_aside = putting_process(this_throw, all_aside)
-    leftover_dice = [dice for dice in this_throw if dice not in all_aside
-                     or all_aside.remove(dice)]  # Bug?
+    all_aside_copy = deepcopy(all_aside)
+    leftover_dice = [dice for dice in this_throw if dice not in all_aside_copy
+                     or all_aside_copy.remove(dice)]
+
     calc_score = calculate_score(now_aside)
     score += calc_score
-    roll = input('Do you want to roll the dice again? [Y/n] ')
+    show_score(score)
+
+    if len(all_aside) < 6:
+        roll = input('Do you want to roll the dice again? [Y/n] ')
+    else:
+        print('No dice left.')
+        sys.exit()
     # continue
-# BUG
     if roll.lower() == 'y':
-        print(f'all_aside (FAIL): {all_aside}')
         another_throw = throw(leftover_dice, score)
         put_dice_aside(another_throw, all_aside, score)
     # end
     else:
         show_score(score)
-        #print(f'{leftover_dice}, {all_aside}')  # correct
+        if score < THRESHOLD:
+            print(f'Your score ({score}) is below the threshold ({THRESHOLD}).')
         del all_aside
         sys.exit()
     return score
@@ -96,23 +108,7 @@ def putting_process(this_throw, all_aside=None):  # BUGGY!
     param2: all dice aside (default: None)
     output: all dice aside, current dice aside"""
 
-    print(f'{this_throw} | {all_aside}')  # DISPLAY DICE
-
-# BUGS
-
-# Which dice do you want to put aside? 24534
-# You put aside: [2, 4, 5, 3, 4]
-# 50 / 350.
-# OR
-# Which dice do you want to put aside? 1112
-# You put aside: [1, 1, 1, 2]
-# DOUBLES: 1000
-# one_five_aside: [2]
-# 1000 / 350.
-# >> you can make invalid moves when combined with a valid decision
-
-# Sorry, no chance: [4, 3, 3, 2, 4, 3]
-# >> you can not use streets or doubles
+    print(f'{this_throw} <> {all_aside}')  # DISPLAY DICE
 
     now_aside = input('Which dice do you want to put aside? ')
     # prevent ValueError
@@ -138,12 +134,9 @@ def putting_process(this_throw, all_aside=None):  # BUGGY!
 
     print(f'You put aside: {all_aside}')
     return all_aside, now_aside
-# to do: two triples is not a failure!
-# bug: can choose 1 3 3 3 from [1, 4]
-# bug: street and three_pairs fails ("[1, 1, 1, 1, 1, 1]")
 
 
-def validator(this_throw, init=False):
+def validator(this_throw, init=False, special=False):
     """check whether decision is valid
 
     param1:
@@ -152,6 +145,8 @@ def validator(this_throw, init=False):
     output: boolean value"""
 
     street = list(range(1,7))
+    #double = [each_dice for each_dice in this_throw if this_throw.count(each_dice) >= 3]
+
     three_pairs = sum([1 for each_dice in this_throw if
                        this_throw.count(each_dice) == 2]) == 6
     two_triples = sum([1 for each_dice in this_throw if
@@ -170,6 +165,12 @@ def validator(this_throw, init=False):
             this_throw is two_triples):
             return True
         return False
+    if special:
+        if (this_throw is street or
+            this_throw is three_pairs or
+            this_throw is two_triples):
+            return True
+        return False
     if ((valid_dice and not invalid_dice) or
         this_throw is street or
         this_throw is three_pairs or
@@ -183,7 +184,7 @@ def calculate_score(now_aside):
     calc_score = 0
     special_score = 1500
 
-    if validator(now_aside):
+    if validator(now_aside, special=True):
         calc_score += special_score
         print(f'SPECIAL: {calc_score}')
 
@@ -205,20 +206,11 @@ def calculate_score(now_aside):
 
             # one five
             calc_score = one_five_score(one_five_aside, calc_score)
-            #calc_score += one_five
             return calc_score
 
     # one–five score
     simple_score = one_five_score(now_aside, calc_score)
     return simple_score
-# bug: 1 3 3 3 = 700 (actually 350); 1 1 1 1 = 4000 (actually 2000)
-# bug: street 1650 instead of 1500
-
-# BUG
-# Which dice do you want to put aside? 331166
-# You put aside: [3, 3, 1, 1, 6, 6]
-# 200 / 350.
-# >> two triples
 
 
 def one_five_score(preproc_aside, calc_score=0):
@@ -227,17 +219,10 @@ def one_five_score(preproc_aside, calc_score=0):
     param1: all dice aside
     param2: current score (default: empty list)
     output: score"""
-    threshold = 350
     simple_score = sum([50 if dice == 5 else 100 for dice in preproc_aside
                         if dice in (1, 5)])
     calc_score += simple_score
-    print(f'{calc_score} / {threshold}.')
     return calc_score
-
-
-
-# BUG
-# one_five_aside: [3, 3, 3]
 
 # %% EXECUTE
 
