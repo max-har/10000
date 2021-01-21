@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Mon Jan 18 14:27:03 2021
+Created on Mon Jan 18 14:27:03 2021.
 
 @author: Max Harder
 """
@@ -11,7 +11,7 @@ Created on Mon Jan 18 14:27:03 2021
 import random
 import sys
 
-from  copy import deepcopy
+from copy import deepcopy
 
 
 WELCOME = r''' _               _   _                                     _
@@ -26,10 +26,10 @@ THRESHOLD = 350
 
 
 def play():
-    """play one round"""
+    """Play one round."""
     score = 0
     cubes_aside = []
-    cubes = range(1,7)  # six cubes
+    cubes = range(1, 7)  # six cubes
     print(WELCOME)
     while score < 10000:
         this_throw = throw(cubes, score)
@@ -39,38 +39,40 @@ def play():
 
 
 def throw(cubes, score=0):
-    """throw current number of dice
+    """Throw current number of dice.
 
     param1: number of cubes
-    output: current throw"""
+    output: current throw
+    """
     show_score(score)
-    this_throw = list((random.randint(1,6) for cube in cubes if cube != 0))
+    this_throw = list((random.randint(1, 6) for cube in cubes if cube != 0))
     return this_throw
 
 
 def show_score(score):
-    """show score"""
+    """Show score."""
     current_score = f'│ {score:,} / 10,000 │'
 
     print('\n┌'+(len(current_score)-2)*'─'+'┐')
     print(current_score)
     print('└'+(len(current_score)-2)*'─'+'┘\n')
-    #return score
+    # return score
 
 
 def put_dice_aside(this_throw, all_aside, score):
-    """put dice aside
+    """Put dice aside.
 
     param1: current throw
     param2: old score
-    output: new score"""
+    output: new score
+    """
     if not validator(this_throw, init=True):
         print(f'No chance: {this_throw} <> {all_aside}')
         roll = input('Do you want to roll the dice again? [Y/n] ')
         if not roll.lower() == 'y':
             sys.exit()
         else:
-            second_throw = throw(range(1,7))  # six cubes
+            second_throw = throw(range(1, 7))  # six cubes
             put_dice_aside(second_throw, [], score)
 
     all_aside, now_aside = putting_process(this_throw, all_aside)
@@ -102,18 +104,18 @@ def put_dice_aside(this_throw, all_aside, score):
 
 
 def putting_process(this_throw, all_aside=None):  # BUGGY!
-    """validate putting process
+    """Validate putting process.
 
     param1: current throw
     param2: all dice aside (default: None)
-    output: all dice aside, current dice aside"""
-
+    output: all dice aside, current dice aside
+    """
     print(f'{this_throw} <> {all_aside}')  # DISPLAY DICE
 
     now_aside = input('Which dice do you want to put aside? ')
     # prevent ValueError
     if now_aside.isdigit():
-        #all_aside = [int(dice) for dice in all_aside]
+        # all_aside = [int(dice) for dice in all_aside]
         now_aside = [int(dice) for dice in now_aside]
     elif ' ' in now_aside and ''.join(now_aside.split()).isdigit():
         now_aside = [int(digit) for digit in now_aside.split()]
@@ -122,10 +124,10 @@ def putting_process(this_throw, all_aside=None):  # BUGGY!
 
     if not all_aside:
         all_aside = now_aside+[]  # debugging (missing double digit)
-        #print(f'test: {all_aside}')
+        # print(f'test: {all_aside}')
     else:
         all_aside += now_aside
-        #print(f'test: {all_aside}')
+        # print(f'test: {all_aside}')
 
     if not validator(now_aside):  # BUG!
         print('You cannot put this set of dice aside.')
@@ -137,15 +139,15 @@ def putting_process(this_throw, all_aside=None):  # BUGGY!
 
 
 def validator(this_throw, init=False, special=False):
-    """check whether decision is valid
+    """Check whether decision is valid.
 
     param1:
     param2:
     param3: special (street, doubles, pairs, triples)
-    output: boolean value"""
-
-    street = list(range(1,7))
-    #double = [each_dice for each_dice in this_throw if this_throw.count(each_dice) >= 3]
+    output: boolean value
+    """
+    street = list(range(1, 7))
+    # double = [each_dice for each_dice in this_throw if this_throw.count(each_dice) >= 3]
 
     three_pairs = sum([1 for each_dice in this_throw if
                        this_throw.count(each_dice) == 2]) == 6
@@ -160,7 +162,7 @@ def validator(this_throw, init=False, special=False):
     sorted(this_throw)
     if init:
         if (valid_dice or
-            this_throw is street or
+            this_throw is street or  # call as function
             this_throw is three_pairs or
             this_throw is two_triples):
             return True
@@ -178,9 +180,9 @@ def validator(this_throw, init=False, special=False):
         return True
     return False
 
-def calculate_score(now_aside):
-    """calculate score"""
 
+def calculate_score(now_aside):
+    """Calculate score."""
     calc_score = 0
     special_score = 1500
 
@@ -214,11 +216,12 @@ def calculate_score(now_aside):
 
 
 def one_five_score(preproc_aside, calc_score=0):
-    """calculate score from ones and fives
+    """Calculate score from ones and fives.
 
     param1: all dice aside
     param2: current score (default: empty list)
-    output: score"""
+    output: score
+    """
     simple_score = sum([50 if dice == 5 else 100 for dice in preproc_aside
                         if dice in (1, 5)])
     calc_score += simple_score
@@ -230,18 +233,7 @@ def one_five_score(preproc_aside, calc_score=0):
 if __name__ == "__main__":
     play()
 
-# %%
+# %% PLAYGROUND
 
-random_throw = [1,2,3,4,5,6]  # True
-valid_put = [1, 5]  # True
-valid_put_single = [1]  # True
-invalid_put = [1, 2]  # False
-invalid_put_single = [2]  # False
-
-print(validator(random_throw, init=True))
-print(validator(valid_put, init=False))
-print(validator(valid_put_single, init=False))
-print(validator(invalid_put, init=False))
-print(validator(invalid_put_single, init=False))
-
-#print([cube for cube in this_throw if cube not in (1, 5) and this_throw.count(cube) < 3])
+# random_throw = [1,2,3,4,5,6]  # True
+# print([cube for cube in this_throw if cube not in (1, 5) and this_throw.count(cube) < 3])
