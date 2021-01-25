@@ -13,24 +13,22 @@ import sys
 
 from copy import deepcopy
 
-
 WELCOME = r''' _               _   _                                     _
 | |_ ___ _ __   | |_| |__   ___  _   _ ___  __ _ _ __   __| |
 | __/ _ \ '_ \  | __| '_ \ / _ \| | | / __|/ _` | '_ \ / _` |
 | ||  __/ | | | | |_| | | | (_) | |_| \__ \ (_| | | | | (_| |
  \__\___|_| |_|  \__|_| |_|\___/ \__,_|___/\__,_|_| |_|\__,_|
 
-https://github.com/max-har/10000                   2021-01-22'''
+https://github.com/max-har/10000                   2021-01-25'''
 
 THRESHOLD = 350
 
 
 def play():
-    """Play one round."""
+    """Play one game."""
     score = 0
     print(WELCOME)
     while score < 10000:
-
         tmp_points = 0
         cubes_aside = []
         cubes = range(1, 7)  # six cubes
@@ -38,8 +36,7 @@ def play():
         print('\nNEW ROUND!')
 
         draw_box(score)
-        this_throw = throw(cubes)
-        tmp_points = put_dice_aside(this_throw, cubes_aside, tmp_points)
+        tmp_points = put_dice_aside(cubes, cubes_aside, tmp_points)
         score += tmp_points
         draw_box(score)
 
@@ -69,34 +66,36 @@ def draw_dice(this_throw):
         this_cube_top += cube_top
         this_cube_mid += cube_mid.format(dice)
         this_cube_bot += cube_bot
-    print(this_cube_top+'\n'+this_cube_mid+'\n'+this_cube_bot)
+    print(this_cube_top + '\n' + this_cube_mid + '\n' + this_cube_bot)
 
 
 def draw_box(min_val, max_val=THRESHOLD, score=True):
     """Draw a box showing the current score or points."""
     if score:
         current_score = f'│ {min_val:,} / 10,000 │'
-        print('\n┌'+(len(current_score)-2)*'─'+'┐')
+        print('\n┌' + (len(current_score) - 2) * '─' + '┐')
         print(current_score)
-        print('└'+(len(current_score)-2)*'─'+'┘\n')
+        print('└' + (len(current_score) - 2) * '─' + '┘\n')
     else:
         current_score = f'│ {min_val:,} / {max_val} │'
-        print('\n┌'+(len(current_score)-2)*'─'+'┐')
+        print('\n┌' + (len(current_score) - 2) * '─' + '┐')
         print(current_score)
-        print('└'+(len(current_score)-2)*'─'+'┘\n')
+        print('└' + (len(current_score) - 2) * '─' + '┘\n')
 
-def put_dice_aside(this_throw, all_aside, tmp_points=0):
+
+def put_dice_aside(cubes, all_aside, tmp_points=0):
     """Put dice aside.
 
     param1: current throw
     param2: old score
     output: new score
     """
-    # validate throw
-    validate_throw(this_throw)
+    this_throw = throw(cubes)
+
+    if validate_throw(this_throw) == 0:
+        return 0
 
     # decision making
-    #print('Start decision making.')
     all_aside, now_aside = decision_making(this_throw, all_aside)
     all_aside_copy = deepcopy(all_aside)
     leftover_dice = [dice for dice in this_throw if dice not in all_aside_copy
@@ -112,26 +111,20 @@ def put_dice_aside(this_throw, all_aside, tmp_points=0):
         # all dice aside
         cont_run = input('No dice left! Do you want to continue this run? [Y/n] ')
         if not cont_run.lower() == 'y':
-
             return tmp_points
-        second_throw = throw(range(1, 7))  # six cubes
-        return put_dice_aside(second_throw, [], tmp_points)
+        return put_dice_aside(cubes, [], tmp_points)
     # continue
     if cont_run.lower() == 'y':
-        another_throw = throw(leftover_dice)
-        return put_dice_aside(another_throw, all_aside, tmp_points)
+        return put_dice_aside(leftover_dice, all_aside, tmp_points)
     # end
     draw_box(tmp_points, score=False)
     if tmp_points < THRESHOLD:
         print(f'Your points ({tmp_points}) are below the threshold ({THRESHOLD}).')
-        #del all_aside
-        #tmp_points = 0
         return 0
-    #print(f'Temporary points in put_dice_aside: {tmp_points}')  # correct value
-    return tmp_points  # +++ BUG: Does not roll the dice again (after No chance!). +++
+    return tmp_points
 
 
-def validate_throw(this_throw):
+def validate_throw(this_throw):  # BUG?
     """Validate throw."""
     if not validator(this_throw, init=True):
         print('No chance!')
@@ -139,11 +132,11 @@ def validate_throw(this_throw):
         if not roll_again.lower() == 'y':
             sys.exit()
         else:
-            second_throw = throw(range(1, 7))  # six cubes
-            return put_dice_aside(second_throw, [])
+            return 0
+    return True
 
 
-def decision_making(this_throw, all_aside=None):  # BUGGY!
+def decision_making(this_throw, all_aside=None):  # BUG?
     """Manage decision making process.
 
     param1: current throw
@@ -154,7 +147,6 @@ def decision_making(this_throw, all_aside=None):  # BUGGY!
     now_aside = input('Which dice do you want to put aside? ')
     # prevent ValueError
     if now_aside.isdigit():
-        # all_aside = [int(dice) for dice in all_aside]
         now_aside = [int(dice) for dice in now_aside]
     elif ' ' in now_aside and ''.join(now_aside.split()).isdigit():
         now_aside = [int(digit) for digit in now_aside.split()]
@@ -166,7 +158,7 @@ def decision_making(this_throw, all_aside=None):  # BUGGY!
     else:
         all_aside += list(now_aside)
 
-    if not validator(now_aside):  # BUG?
+    if not validator(now_aside):
         print('You cannot put this set of dice aside.')
         all_aside = []
         decision_making(this_throw, all_aside)
@@ -223,7 +215,7 @@ def calculate_points(now_aside):
     # special throw (street etc.)
     if validator(now_aside, special=True):
         tmp_points += special_points
-        #print(f'SPECIAL: {tmp_points}')
+        # print(f'{tmp_points}')
         return tmp_points
 
     # doubles (plus ones and fives)
@@ -233,14 +225,14 @@ def calculate_points(now_aside):
                 tmp_points += 1000
                 now_aside.remove(each_dice)
             if each_dice != 1:
-                tmp_points += each_dice*100
+                tmp_points += each_dice * 100
             else:
                 tmp_points += 1000
             now_aside.remove(each_dice)
             # filter remaining ones and fives
             one_five_aside = [dice for dice in now_aside if dice != each_dice]
-            #print(f'one_five_aside: {one_five_aside}')  # OK # bug when invalid move is followed by double
-            # one five
+            # print(f'Ones and fives aside: {one_five_aside}')  # OK
+            # is there still a bug when an invalid move is followed by a double?
             remaining_points = one_five_score(one_five_aside)
             tmp_points += remaining_points
             return tmp_points
@@ -251,7 +243,7 @@ def calculate_points(now_aside):
     return tmp_points
 
 
-def one_five_score(preproc_aside):#, tmp_points=0):
+def one_five_score(preproc_aside):
     """Calculate score from ones and fives.
 
     param1: all dice aside
@@ -259,10 +251,9 @@ def one_five_score(preproc_aside):#, tmp_points=0):
     output: score
     """
     remaining_points = sum([50 if dice == 5 else 100 for dice in preproc_aside
-                        if dice in (1, 5)])
+                            if dice in (1, 5)])
     return remaining_points
 
-# %% EXECUTE
 
 if __name__ == "__main__":
     play()
