@@ -19,7 +19,7 @@ WELCOME = r''' _               _   _                                     _
 | ||  __/ | | | | |_| | | | (_) | |_| \__ \ (_| | | | | (_| |
  \__\___|_| |_|  \__|_| |_|\___/ \__,_|___/\__,_|_| |_|\__,_|
 
-https://github.com/max-har/10000                   2021-01-25'''
+https://github.com/max-har/10000                   2023-07-18'''
 
 THRESHOLD = 350
 
@@ -144,14 +144,16 @@ def decision_making(this_throw, all_aside=None):  # BUG?
     output: all dice aside, current dice aside
     """
     print(f'\n{all_aside}\n')  # DISPLAY DICE ASIDE
-    now_aside = input('Which dice do you want to put aside? ')
-    # prevent ValueError
-    if now_aside.isdigit():
-        now_aside = [int(dice) for dice in now_aside]
-    elif ' ' in now_aside and ''.join(now_aside.split()).isdigit():
-        now_aside = [int(digit) for digit in now_aside.split()]
-    else:
-        raise ValueError('Not all elements are integers.')
+    while True:
+        now_aside = input('Which dice do you want to put aside? ')
+        if now_aside.isdigit():
+            now_aside = [int(dice) for dice in now_aside]
+            break
+        elif ' ' in now_aside and ''.join(now_aside.split()).isdigit():
+            now_aside = [int(digit) for digit in now_aside.split()]
+            break
+        else:
+            print('Please enter integers only.')
 
     if not all_aside:
         all_aside = list(now_aside)
